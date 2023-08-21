@@ -28,20 +28,53 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { storeToRefs } from "pinia";
 import { allTasks, createTask, updateTask, completeTask, removeTask } from "../http/task-api";
 import Tasks from "../components/tasks/Tasks.vue";
 import NewTask from '../components/tasks/NewTask.vue';
+import { useTaskStore } from "../stores/task"
+
+const store = useTaskStore();
+// const { task } = store; // we cannot destructure like this
+// it will break reactivity of the state
+
+//mutating state eg..
+// store.task.name = "first task updated";
+// store.task.is_completed = true;
+/*
+//$patch allows to mutate multiple state at the same time 
+store.$patch({
+    task: {
+        name: "First task updating using $patch",
+        is_completed: true
+    }
+})
+*/
+
+// to extract properties from the store while keeping its reactivity
+// we can use storeToRefs function to destructure state and actions to keep reactivity
+const { completedTasks, uncompletedTasks } = storeToRefs(store);
+
+// we can simply destructure action without storeToRefs method
+const { fetchAllTasks } = store;
 
 const tasks = ref([]);
 
 onMounted(async () => {
-    const { data } = await allTasks();
-    tasks.value = data.data;
-    // console.log(tasks.value)
+    // without pinia calling api here directly
+    // const { data } = await allTasks();
+    // tasks.value = data.data;
+
+    // with pinia calling action here
+    // that action will call api
+    await fetchAllTasks();
+    console.log(tasks.value);
+    console.log(completedTasks.value);
+    console.log(uncompletedTasks.value);
 })
 
-const uncompletedTasks = computed(() => tasks.value.filter(task => !task.is_completed));
-const completedTasks = computed(() => tasks.value.filter(task => task.is_completed));
+// const uncompletedTasks = computed(() => tasks.value.filter(task => !task.is_completed));
+// const completedTasks = computed(() => tasks.value.filter(task => task.is_completed));
 
 const showToggleCompletedBtn = computed(
     () => uncompletedTasks.value.length > 0 && completedTasks.value.length > 0
